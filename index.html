@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>2026 年香港月曆小遊戲（官方公眾假期）</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #f2f7ff;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #2b4c7e;
+    }
+    #game-container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    select, button, input {
+      font-size: 16px;
+      padding: 5px 10px;
+      margin: 5px;
+    }
+    #question {
+      font-size: 18px;
+      margin: 10px 0 15px 0;
+      color: #333;
+    }
+    table.calendar {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    table.calendar th, table.calendar td {
+      border: 1px solid #ddd;
+      width: 14.28%;
+      height: 50px;
+      text-align: center;
+      vertical-align: middle;
+      user-select: none;
+    }
+    table.calendar th {
+      background: #e3ecff;
+      color: #2b4c7e;
+      font-weight: bold;
+    }
+    /* 星期日紅色字體 */
+    table.calendar td.sunday {
+      color: red;
+    }
+    /* 公眾假期紅色背景+白色字體 */
+    table.calendar td.holiday {
+      background: #ff4444 !important;
+      color: white;
+      font-weight: bold;
+    }
+    table.calendar td {
+      background: #fafafa;
+      cursor: pointer;
+      position: relative;
+    }
+    table.calendar td.empty {
+      background: #f5f5f5;
+      cursor: default;
+      color: initial;
+    }
+    table.calendar td:hover:not(.empty):not(.holiday) {
+      background: #ffe9b3;
+    }
+    table.calendar td.correct {
+      background: #c6f6c6 !important;
+      color: #333;
+    }
+    table.calendar td.wrong {
+      background: #ffc9c9;
+      animation: shake 0.2s;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      50% { transform: translateX(3px); }
+      75% { transform: translateX(-3px); }
+      100% { transform: translateX(0); }
+    }
+    #message {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    #hint {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #666;
+    }
+    .legend {
+      margin-top: 15px;
+      font-size: 14px;
+      text-align: left;
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    #weekdayGuessInput {
+      width: 150px;
+      font-size: 16px;
+    }
+    .holiday-info {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #cc0000;
+      color: white;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+      display: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>2026 年香港月曆小遊戲（官方公眾假期）</h1>
+    <div id="controls">
+      <label for="monthSelect">選擇月份：</label>
+      <select id="monthSelect">
+        <option value="0">1 月</option>
+        <option value="1">2 月</option>
+        <option value="2">3 月</option>
+        <option value="3">4 月</option>
+        <option value="4">5 月</option>
+        <option value="5">6 月</option>
+        <option value="6">7 月</option>
+        <option value="7">8 月</option>
+        <option value="8">9 月</option>
+        <option value="9">10 月</option>
+        <option value="10">11 月</option>
+        <option value="11">12 月</option>
+      </select>
+
+      <label for="questionType">題型：</label>
+      <select id="questionType">
+        <option value="nthWeekday">找第 N 個星期幾是幾號？</option>
+        <option value="weekdayOfDate">問某一天是星期幾？</option>
+        <option value="countSundays">找該月有幾個星期日？</option>
+        <option value="findHoliday">找出公眾假期日期</option>
+        <option value="holidayCount">該月有幾個公眾假期？</option>
+      </select>
+
+      <button id="newQuestionBtn">出新題目</button>
+    </div>
+
+    <div id="question">請按「出新題目」開始。</div>
+
+    <table class="calendar" id="calendarTable">
+      <thead>
+        <tr>
+          <th>日</th>
+          <th>一</th>
+          <th>二</th>
+          <th>三</th>
+          <th>四</th>
+          <th>五</th>
+          <th>六</th>
+        </tr>
+      </thead>
+      <tbody id="calendarBody"></tbody>
+    </table>
+
+    <div id="interactionArea"></div>
+
+    <div id="message"></div>
+    <div id="hint"></div>
+
+    <div class="legend">
+      <strong>圖例說明：</strong><br />
+      <span style="color:red;">🔴 紅字 = 星期日</span><br />
+      <span style="background:#ff4444;color:white;padding:2px 5px;border-radius:3px;">🛑 紅底白字 = 公眾假期</span><br />
+      <strong>資料來源：</strong>香港政府一站通（2026年公眾假期）[attached_file:1]<br />
+      <strong>教學重點：</strong><br />
+      - 學生可學習辨認公眾假期位置及計算假期數量<br />
+      - 「找出公眾假期日期」：點選紅底日期答題<br />
+      - 「該月有幾個公眾假期？」：數紅底格子數量
+    </div>
+  </div>
+
+  <script>
+    const year = 2026;
+    
+    // 香港2026年官方公眾假期（資料來源：https://www.gov.hk/tc/about/abouthk/holiday/2026.htm）
+    const HKPublicHolidays2026 = {
+      0: [{date: 1, name: '元旦'}],                    // 1月1日
+      1: [                                              // 2月
+        {date: 17, name: '農曆年初一'},
+        {date: 18, name: '農曆年初二'},
+        {date: 19, name: '農曆年初三'}
+      ],
+      3: [                                              // 4月
+        {date: 3, name: '耶穌受難節'},
+        {date: 4, name: '耶穌受難節翌日'},
+        {date: 6, name: '清明節翌日'},
+        {date: 7, name: '復活節星期一翌日'}
+      ],
+      4: [{date: 1, name: '勞動節'}],                  // 5月1日
+      5: [{date: 25, name: '佛誕翌日'}],               // 5月25日
+      6: [{date: 19, name: '端午節'}, {date: 1, name: '香港特別行政區成立紀念日'}], // 6月19日, 7月1日
+      8: [{date: 26, name: '中秋節翌日'}],             // 9月26日
+      9: [{date: 1, name: '國慶日'}],                  // 10月1日
+      10: [{date: 19, name: '重陽節翌日'}],            // 10月19日
+      11: [                                             // 12月
+        {date: 25, name: '聖誕節'},
+        {date: 26, name: '聖誕節後第一個周日'}
+      ]
+    };
+
+    const monthSelect = document.getElementById('monthSelect');
+    const questionTypeSelect = document.getElementById('questionType');
+    const calendarBody = document.getElementById('calendarBody');
+    const questionDiv = document.getElementById('question');
+    const messageDiv = document.getElementById('message');
+    const hintDiv = document.getElementById('hint');
+    const newQuestionBtn = document.getElementById('newQuestionBtn');
+    const interactionArea = document.getElementById('interactionArea');
+
+    let currentMonth = 0;
+    let currentQuestionType = 'nthWeekday';
+
+    // 題目變數
+    let targetWeekIndex = 1;
+    let targetWeekday = 0;
+    let answerDate = null;
+    let targetDate = null;
+    let countAnswer = null;
+    let targetHoliday = null;
+
+    const weekdaysNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const orderNames = ['第 1 個', '第 2 個', '第 3 個', '第 4 個', '第 5 個'];
+
+    // 產生月曆（含官方公眾假期標示）
+    function generateCalendar(month) {
+      calendarBody.innerHTML = '';
+      currentMonth = month;
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const firstWeekday = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+      const holidays = HKPublicHolidays2026[month] || [];
+
+      let row = document.createElement('tr');
+      for (let i = 0; i < firstWeekday; i++) {
+        const cell = document.createElement('td');
+        cell.classList.add('empty');
+        row.appendChild(cell);
+      }
+
+      for (let date = 1; date <= daysInMonth; date++) {
+        const cell = document.createElement('td');
+        cell.textContent = date;
+        cell.dataset.date = date;
+        cell.title = `${year}年${month+1}月${date}日`;
+
+        // 判斷星期幾
+        const weekday = (firstWeekday + date - 1) % 7;
+        if (weekday === 0) {
+          cell.classList.add('sunday');
+        }
+
+        // 判斷是否公眾假期
+        const isHoliday = holidays.find(h => h.date === date);
+        if (isHoliday) {
+          cell.classList.add('holiday');
+          const info = document.createElement('div');
+          info.className = 'holiday-info';
+          info.textContent = isHoliday.name;
+          cell.appendChild(info);
+        }
+
+        // 根據題型設定互動
+        setupCellInteraction(cell, date);
+
+        row.appendChild(cell);
+
+        if (weekday === 6 && date !== daysInMonth) {
+          calendarBody.appendChild(row);
+          row = document.createElement('tr');
+        }
+      }
+
+      if (row.children.length > 0) {
+        const remaining = 7 - row.children.length;
+        for (let i = 0; i < remaining; i++) {
+          const cell = document.createElement('td');
+          cell.classList.add('empty');
+          row.appendChild(cell);
+        }
+        calendarBody.appendChild(row);
+      }
+    }
+
+    // 根據題型設定單元格互動
+    function setupCellInteraction(cell, date) {
+      cell.style.cursor = 'pointer';
+      
+      if (currentQuestionType === 'nthWeekday') {
+        cell.addEventListener('click', () => handleDateClickNthWeekday(date, cell));
+      } else if (currentQuestionType === 'weekdayOfDate') {
+        cell.addEventListener('click', () => handleClickDateForWeekday(date));
+      } else if (currentQuestionType === 'findHoliday') {
+        cell.addEventListener('click', () => handleHolidayClick(date, cell));
+      } else if (currentQuestionType === 'countSundays' || currentQuestionType === 'holidayCount') {
+        cell.style.cursor = 'default';
+      } else {
+        cell.style.cursor = 'default';
+      }
+
+      // 公眾假期hover顯示名稱
+      cell.addEventListener('mouseenter', () => {
+        if (cell.classList.contains('holiday')) {
+          const info = cell.querySelector('.holiday-info');
+          if (info) info.style.display = 'block';
+        }
+      });
+      cell.addEventListener('mouseleave', () => {
+        const info = cell.querySelector('.holiday-info');
+        if (info) info.style.display = 'none';
+      });
+    }
+
+    function findNthWeekdayDate(year, month, weekday, n) {
+      const firstDay = new Date(year, month, 1);
+      const firstWeekday = firstDay.getDay();
+      let offset = weekday - firstWeekday;
+      if (offset < 0) offset += 7;
+      const firstTargetDate = 1 + offset;
+      const targetDate = firstTargetDate + (n - 1) * 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      return targetDate <= daysInMonth ? targetDate : null;
+    }
+
+    function countSundays(year, month) {
+      let count = 0;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        if (new Date(year, month, d).getDay() === 0) count++;
+      }
+      return count;
+    }
+
+    function getHolidaysInMonth(month) {
+      return HKPublicHolidays2026[month] || [];
+    }
+
+    // 題型1：第N個星期X是幾號
+    function handleDateClickNthWeekday(date, cell) {
+      if (!answerDate) return;
+      clearHighlight();
+      if (date === answerDate) {
+        cell.classList.add('correct');
+        messageDiv.textContent = `答對了！正確日期是 ${date} 號。`;
+        messageDiv.style.color = 'green';
+      } else {
+        cell.classList.add('wrong');
+        messageDiv.textContent = `再想一想～ ${date} 號不是答案。`;
+        messageDiv.style.color = 'red';
+      }
+    }
+
+    // 題型2：問某天是星期幾
+    function handleClickDateForWeekday(date) {
+      clearHighlight();
+      const weekday = new Date(year, currentMonth, date).getDay();
+      messageDiv.style.color = '#2b4c7e';
+      messageDiv.textContent = `2026 年 ${currentMonth + 1} 月 ${date} 號是${weekdaysNames[weekday]}`;
+      highlightDateCell(date);
+    }
+
+    // 題型4：找出公眾假期日期
+    function handleHolidayClick(date, cell) {
+      if (!targetHoliday) return;
+      clearHighlight();
+      if (date === targetHoliday.date) {
+        cell.classList.add('correct');
+        messageDiv.textContent = `答對了！${targetHoliday.name} 是 ${date} 號。`;
+        messageDiv.style.color = 'green';
+      } else {
+        cell.classList.add('wrong');
+        messageDiv.textContent = `${date} 號不是公眾假期，再找找紅底日期。`;
+        messageDiv.style.color = 'red';
+      }
+    }
+
+    // 題型3&5：計數題型輸入框
+    function setupCountInteraction(expectedAnswer, questionText) {
+      interactionArea.innerHTML = '';
+      const label = document.createElement('label');
+      label.textContent = questionText;
+      label.setAttribute('for', 'countInput');
+      
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.id = 'countInput';
+      input.min = 0;
+      input.style.marginLeft = '10px';
+      
+      const btn = document.createElement('button');
+      btn.textContent = '提交答案';
+      
+      btn.addEventListener('click', () => {
+        const val = parseInt(input.value, 10);
+        if (isNaN(val)) {
+          messageDiv.textContent = '請輸入一個數字。';
+          messageDiv.style.color = 'red';
+          return;
+        }
+        if (val === expectedAnswer) {
+          messageDiv.textContent = `答對了！${expectedAnswer} 是正確數目。`;
+          messageDiv.style.color = 'green';
+        } else {
+          messageDiv.textContent = `再數一數～`;
+          messageDiv.style.color = 'red';
+        }
+      });
+      
+      interactionArea.appendChild(label);
+      interactionArea.appendChild(input);
+      interactionArea.appendChild(btn);
+    }
+
+    function clearHighlight() {
+      messageDiv.textContent = '';
+      hintDiv.textContent = '';
+      interactionArea.innerHTML = '';
+      const cells = calendarBody.querySelectorAll('td');
+      cells.forEach(c => {
+        c.classList.remove('correct', 'wrong', 'selected');
+      });
+    }
+
+    function highlightDateCell(date) {
+      const cells = calendarBody.querySelectorAll('td');
+      cells.forEach(c => {
+        if (parseInt(c.dataset.date) === date) {
+          c.classList.add('correct');
+        }
+      });
+    }
+
+    // 出新題目
+    function generateQuestion() {
+      clearHighlight();
+      currentMonth = parseInt(monthSelect.value, 10);
+      currentQuestionType = questionTypeSelect.value;
+      generateCalendar(currentMonth);
+
+      const holidays = getHolidaysInMonth(currentMonth);
+      const monthName = currentMonth + 1;
+
+      if (currentQuestionType === 'nthWeekday') {
+        targetWeekday = Math.floor(Math.random() * 7);
+        targetWeekIndex = Math.floor(Math.random() * 4) + 1;
+        answerDate = findNthWeekdayDate(year, currentMonth, targetWeekday, targetWeekIndex);
+        if (!answerDate) { generateQuestion(); return; }
+        questionDiv.textContent = `題目：請找出 2026 年 ${monthName} 月的 ${orderNames[targetWeekIndex-1]} ${weekdaysNames[targetWeekday]} 是幾號？`;
+        hintDiv.textContent = '提示：請在月曆中點選正確日期。';
+
+      } else if (currentQuestionType === 'weekdayOfDate') {
+        const daysInMonth = new Date(year, currentMonth + 1, 0).getDate();
+        targetDate = Math.floor(Math.random() * daysInMonth) + 1;
+        questionDiv.textContent = `題目：2026 年 ${monthName} 月 ${targetDate} 號是星期幾？`;
+        hintDiv.textContent = '提示：點選該日期查看答案。';
+
+      } else if (currentQuestionType === 'countSundays') {
+        countAnswer = countSundays(year, currentMonth);
+        questionDiv.textContent = `題目：2026 年 ${monthName} 月有幾個星期日？`;
+        hintDiv.textContent = '提示：數紅字日期。';
+        setupCountInteraction(countAnswer, '請輸入星期日數量：');
+
+      } else if (currentQuestionType === 'findHoliday') {
+        if (holidays.length === 0) {
+          questionDiv.textContent = `2026 年 ${monthName} 月沒有公眾假期！`;
+          hintDiv.textContent = '請選擇有假期的月份練習（如2月、4月）。';
+          return;
+        }
+        targetHoliday = holidays[Math.floor(Math.random() * holidays.length)];
+        questionDiv.textContent = `題目：2026 年 ${monthName} 月的「${targetHoliday.name}」是幾號？`;
+        hintDiv.textContent = '提示：找紅底白字的公眾假期日期點選。';
+
+      } else if (currentQuestionType === 'holidayCount') {
+        countAnswer = holidays.length;
+        questionDiv.textContent = `題目：2026 年 ${monthName} 月有幾個公眾假期？`;
+        hintDiv.textContent = '提示：數紅底格子數量。';
+        setupCountInteraction(countAnswer, '請輸入公眾假期數量：');
+      }
+    }
+
+    monthSelect.addEventListener('change', () => {
+      generateCalendar(parseInt(monthSelect.value, 10));
+      questionDiv.textContent = '請選擇題型並按「出新題目」。';
+    });
+
+    questionTypeSelect.addEventListener('change', generateQuestion);
+    newQuestionBtn.addEventListener('click', generateQuestion);
+
+    generateCalendar(0);
+  </script>
+</body>
+</html>
